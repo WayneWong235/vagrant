@@ -8,7 +8,7 @@ Vagrant.configure("2") do |config|
   # See https://github.com/hashicorp/vagrant/issues/5005
   config.ssh.insert_key = false
 
-  config.vm.provision "ansible" do |ansible|
+  config.vm.provision "ansible_local" do |ansible|
     ansible.verbose = "v"
     ansible.playbook = "playbook.yml"
   end
