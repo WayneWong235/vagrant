@@ -15,7 +15,8 @@
 #
 ---
 
-- hosts: pull_mode_hosts
+- name: DevOps challenge app test
+  hosts: pull_mode_hosts
   remote_user: root
 
   vars:
