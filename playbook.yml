@@ -25,10 +25,10 @@
     # schedule: '*/15 * * * *'
 
     # User to run ansible-pull as from cron
-    cron_user: root
+    # cron_user: root
 
     # File that ansible will use for logs
-    logfile: /var/log/ansible-pull.log
+    # logfile: /var/log/ansible-pull.log
 
     # Directory to where repository will be cloned
     workdir: /webapps/devops
@@ -36,18 +36,25 @@
     # Repository to check out -- YOU MUST CHANGE THIS
     # repo must contain a local.yml file at top level
     #repo_url: git://github.com/sfromm/ansible-playbooks.git
-    repo_url: git@bitbucket.org:azneita/devops-challenge.git
+    repo_url: https://bitbucket.org/azneita/devops-challenge.git
 
   tasks:
 
     - name: Install ansible
-      yum: pkg=ansible state=installed
+      apt: 
+        name: ['ansible', 'git'] 
+        state: present
+      become: true
 
     - name: Create local directory to work from
-      file: path={{workdir}} state=directory owner=root group=root mode=0751
-
-    # - name: Create crontab entry to clone/pull git repository
-    #  template: src=templates/etc_cron.d_ansible-pull.j2 dest=/etc/cron.d/ansible-pull owner=root group=root mode=0644
-
-    - name: Create logrotate entry for ansible-pull.log
-      template: src=templates/etc_logrotate.d_ansible-pull.j2 dest=/etc/logrotate.d/ansible-pull owner=root group=root mode=0644
+      file: 
+        path: "{{ workdir }}"
+        state: directory
+      become: true
+    
+    - name: Checkout DevOps challenge source code
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ workdir }}"
+        clone: yes
+      become: true
