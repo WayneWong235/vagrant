@@ -39,10 +39,9 @@
     repo_url: https://bitbucket.org/azneita/devops-challenge.git
 
   tasks:
-
     - name: Install ansible
       apt: 
-        name: ['ansible', 'git'] 
+        name: ['ansible', 'git', 'python-pip'] 
         state: present
       become: true
 
@@ -58,3 +57,18 @@
         dest: "{{ workdir }}"
         clone: yes
       become: true
+
+    - name: Install Python Modules
+      pip: 
+        requirements: "{{ workdir }}/requirements.txt"
+      become: true
+
+    - name: Run Flask App
+      shell: "/usr/bin/python {{ workdir }}/app.py &"
+      become: true
+
+  handlers:
+    - name: restart flask app
+      service:
+        name: flask
+        state: restarted
