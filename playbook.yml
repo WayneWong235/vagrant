@@ -3,10 +3,12 @@
 
 - name: DevOps challenge app test
   hosts: all
-  remote_user: root
+  become: yes
+  become_user: vagrant
+  become_method: sudo
 
   vars:
-
+    wsgi_file: app.py
     # Directory to where repository will be cloned
     workdir: /webapps/devops
 
@@ -18,34 +20,43 @@
   tasks:
     - name: Install ansible
       apt: 
-        name: ['ansible', 'git', 'python-pip', 'daemon', 'supervisor'] 
+        name: ['ansible', 'git', 'python-pip', 'daemon', 'supervisor', 'uwsgi', 'uwsgi-plugin-python'] 
         state: present
-      become: true
+      become: yes
+      become_user: root
 
     - name: Create local directory to work from
       file: 
-        path: "{{ workdir }}"
+        path: /webapps
         state: directory
-      become: true
+        owner: vagrant
+        group: vagrant
+        mode: 0775
+        recurse: yes
+      become: yes
+      become_user: root
     
     - name: Checkout DevOps challenge source code
       git:
         repo: "{{ repo_url }}"
         dest: "{{ workdir }}"
         clone: yes
-      become: true
 
     - name: Install Python Modules
       pip: 
         requirements: "{{ workdir }}/requirements.txt"
-      become: true
+      become: yes
+      become_user: root
 
     - name: create supervisor program config
-      action: template src=templates/supervisor.ini dest=/etc/supervisor/flask.ini
+      action: template src=templates/supervisor.ini dest=/etc/supervisor/conf.d/app.conf
       notify:
-        - restart flask
-      become: true
+        - restart app
+      become: yes
+      become_user: root
 
   handlers:
-    - name: restart flask
-      action: supervisorctl name=flask state=restarted
+    - name: restart app
+      action: supervisorctl name=app state=restarted
+      become: yes
+      become_user: root
