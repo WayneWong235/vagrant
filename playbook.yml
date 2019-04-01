@@ -1,34 +1,11 @@
-# ansible-pull setup
-#
-# on remote hosts, set up ansible to run periodically using the latest code
-# from a particular checkout, in pull based fashion, inverting Ansible's
-# usual push-based operating mode.
-#
-# This particular pull based mode is ideal for:
-#
-# (A) massive scale out
-# (B) continual system remediation
-#
-# DO NOT RUN THIS AGAINST YOUR HOSTS WITHOUT CHANGING THE repo_url
-# TO SOMETHING YOU HAVE PERSONALLY VERIFIED
-#
-#
 ---
+
 
 - name: DevOps challenge app test
   hosts: all
   remote_user: root
 
   vars:
-
-    # schedule is fed directly to cron
-    # schedule: '*/15 * * * *'
-
-    # User to run ansible-pull as from cron
-    # cron_user: root
-
-    # File that ansible will use for logs
-    # logfile: /var/log/ansible-pull.log
 
     # Directory to where repository will be cloned
     workdir: /webapps/devops
@@ -41,7 +18,7 @@
   tasks:
     - name: Install ansible
       apt: 
-        name: ['ansible', 'git', 'python-pip'] 
+        name: ['ansible', 'git', 'python-pip', 'daemon', 'supervisor'] 
         state: present
       become: true
 
@@ -63,12 +40,12 @@
         requirements: "{{ workdir }}/requirements.txt"
       become: true
 
-    - name: Run Flask App
-      shell: "/usr/bin/python {{ workdir }}/app.py &"
+    - name: create supervisor program config
+      action: template src=templates/supervisor.ini dest=/etc/supervisor/flask.ini
+      notify:
+        - restart flask
       become: true
 
   handlers:
-    - name: restart flask app
-      service:
-        name: flask
-        state: restarted
+    - name: restart flask
+      action: supervisorctl name=flask state=restarted

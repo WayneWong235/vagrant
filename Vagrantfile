@@ -12,4 +12,8 @@ Vagrant.configure("2") do |config|
     ansible.verbose = "v"
     ansible.playbook = "playbook.yml"
   end
+
+  config.vm.provider "virtualbox" do |v|
+    v.customize ["modifyvm", :id, "--cpuexecutioncap", "100"]
+  end
 end
