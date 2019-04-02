@@ -1,10 +1,9 @@
 ---
 
-
 - name: DevOps challenge app test
   hosts: all
-  become: yes
-  become_user: vagrant
+  become: true
+  remote_user: vagrant
   become_method: sudo
 
   vars:
@@ -16,26 +15,28 @@
     # repo must contain a local.yml file at top level
     #repo_url: git://github.com/sfromm/ansible-playbooks.git
     repo_url: https://bitbucket.org/azneita/devops-challenge.git
+    logrotate_scripts:
+      - name: app-options
+        path: /webapps/devops/app.log
+        options:
+          - daily
+          - size 10M
+          - missingok
+
+  roles:
+    - ansible-logrotate
 
   tasks:
     - name: Install ansible
       apt: 
         name: ['ansible', 'git', 'python-pip', 'daemon', 'supervisor', 'uwsgi', 'uwsgi-plugin-python'] 
         state: present
-      become: yes
-      become_user: root
 
     - name: Create local directory to work from
       file: 
         path: /webapps
         state: directory
-        owner: vagrant
-        group: vagrant
-        mode: 0775
-        recurse: yes
-      become: yes
-      become_user: root
-    
+
     - name: Checkout DevOps challenge source code
       git:
         repo: "{{ repo_url }}"
@@ -45,18 +46,21 @@
     - name: Install Python Modules
       pip: 
         requirements: "{{ workdir }}/requirements.txt"
-      become: yes
-      become_user: root
 
     - name: create supervisor program config
       action: template src=templates/supervisor.ini dest=/etc/supervisor/conf.d/app.conf
       notify:
         - restart app
-      become: yes
-      become_user: root
+    
+    - name: supervisor reload
+      shell: supervisorctl reload
+      
+    - name: Verify logrotate config check passes
+      shell: logrotate -d "{{ logrotate_conf_dir }}{{ item.name }}"
+      with_items: "{{ logrotate_scripts }}"
+      register: logrotate_app
+      failed_when: "'error' in logrotate_app.stderr"
 
   handlers:
     - name: restart app
       action: supervisorctl name=app state=restarted
-      become: yes
-      become_user: root
